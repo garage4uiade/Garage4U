@@ -1,0 +1,67 @@
+create table utilizador(
+					utilizador_id SERIAL not null,
+					utilizador_name VARCHAR(60) not null,
+					utilizador_morada VARCHAR(30),
+					utilizador_gender CHAR(1) not null,
+					utilizador_bdate date not null,				
+					utilizador_identificacao_id INT,
+					utilizador_email VARCHAR(30),
+					utilizador_pass VARCHAR(30),
+					primary key (utilizador_id)
+);
+	
+
+create table reserva(
+					reservas_id SERIAL not null,
+					id_utilizador INT not null,
+					hora_de_entrda date not null,
+ 					hora_saida date not null,				
+					primary key (reservas_id)
+);
+
+create table rate(
+					rate_id SERIAL not null,
+					id_utilizador INT not null,
+					reservas_id INT not null,
+ 					rate INT,				
+					primary key (rate_id)
+);
+
+
+create table res_gar(
+					res_gar_id SERIAL not null,
+					reservas_id INT not null,
+					garagens_id INT not null,				
+					primary key (res_gar_id)
+);
+
+create table estado_reserva(
+					estado_reserva_id SERIAL not null,
+					id_estado INT,
+					hora_de_entrda date not null,
+ 					hora_saida date,
+					primary key (estado_reserva_id)
+);
+
+create table estado(
+					id_estado SERIAL not null,
+					estado VARCHAR(30),
+					primary key (estado)
+);
+
+	     		     
+create table garagens(
+					garagens_id SERIAL not null,
+					localizacao VARCHAR(30),				
+					id_propriatario INT,
+					id_estado INT,
+					id_zona INT,
+					primary key (garagens_id)
+);
+
+create table zona(
+					id_zona SERIAL not null,
+					nome zona VARCHAR(30) not null,
+					cod_zona int not null
+					primary key (id_zona )
+);
