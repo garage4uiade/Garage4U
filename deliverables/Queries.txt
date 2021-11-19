@@ -1,0 +1,47 @@
+--inserir utilizadores novos
+CREATE OR REPLACE PROCEDURE public.cria_user(
+    utilizador_name_temp character varying,
+    utilizador_morada_temp character varying,
+    utilizador_gender_temp character,
+    utilizador_bdate_temp date,
+    utilizador_identificacao_id_temp integer,
+    utilizador_email_temp character varying,
+    utilizador_pass_temp character varying)
+LANGUAGE 'plpgsql'
+AS $BODY$
+begin
+    INSERT INTO utilizador (utilizador_id, utilizador_name, utilizador_morada, utilizador_gender, utilizador_bdate, utilizador_identificacao_id, utilizador_email, utilizador_pass) 
+                        VALUES ((select max(utilizador_id)+1 from utilizador),utilizador_name_temp,utilizador_morada_temp,utilizador_gender_temp,utilizador_bdate_temp,utilizador_identificacao_id_temp,utilizador_email_temp,utilizador_pass_temp);
+
+    commit;
+end;
+$BODY$;
+call cria_user('catia marcasha', 'vila franca', 'f', '2000-10-11', 8489484, 'catiamarcasha@gmail.com', '12325689');
+
+
+
+--verificar o estado do utilizador(se tem ja alguma reserva e para quando)
+CREATE OR REPLACE PROCEDURE public.estado_user(
+    utilizador_email_temp character varying,
+    utilizador_pass_temp character varying)
+LANGUAGE 'plpgsql'
+AS $BODY$
+begin
+    select * from reserva inner join utilizador on utilizador.utilizador_id=reserva.id_utilizador left join estado_reserva on reserva.reservas_id = 
+estado_reserva.id_reserva left join estado on estado.id_estado=estado_reserva.id_estado where id_reserva is null and
+utilizador.utilizador_email=utilizador_email_temp and utilizador.utilizador_pass=utilizador_pass_temp;
+
+    commit;
+end;
+$BODY$;
+
+call cria_user('Pedro Santos','123456789');
+
+
+
+
+
+
+
+
+
