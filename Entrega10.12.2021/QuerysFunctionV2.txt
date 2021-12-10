@@ -1,0 +1,156 @@
+--Confirmar a transação:
+
+CREATE OR REPLACE FUNCTION public.confirma_trasacao(
+	utilizador_temp character varying,
+	num_card integer,
+	cvv_temp integer,
+	contidade_dinheiro_temp money)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+BEGIN
+  IF (select id_cart from  banco_cartao inner join banco_conta on id_conta = conta_id where num_cartao=num_card and cvv=cvv_temp and nome_cartao=utilizador_temp and contidade_dinheiro >= contidade_dinheiro_temp) IS not NULL then
+  RETURN (select 'tem');
+  ELSE 
+  RETURN (select 'nao tem');
+  END IF;
+END;
+$BODY$;
+
+
+
+--Criar o utilizador:
+
+
+
+CREATE OR REPLACE FUNCTION public.criar_utilizador(
+	utilizador_name_temp character varying,
+	utilizador_morada_temp character varying,
+	utilizador_gender_temp character varying,
+	utilizador_bdate_temp date,
+	utilizador_identificacao_id_temp integer,
+	utilizador_email_temp character varying,
+	utilizador_pass_temp character varying,
+	utilizador_num_cartao_temp integer,
+	utilizador_cvv_temp integer,
+	utilizador_nome_cartao_temp character varying)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+BEGIN
+  IF (select utilizador_name from utilizador where utilizador_email = utilizador_email_temp) IS NULL then
+  INSERT INTO utilizador (utilizador_id, utilizador_name, utilizador_morada, utilizador_gender, utilizador_bdate, utilizador_identificacao_id, utilizador_email, utilizador_pass, quantidade_dinheiro, num_cartao, cvv, nome_cartao) 
+    VALUES ((select max(utilizador_id)+1 from utilizador),utilizador_name_temp,utilizador_morada_temp,utilizador_gender_temp,utilizador_bdate_temp,utilizador_identificacao_id_temp,utilizador_email_temp,utilizador_pass_temp,'0',utilizador_num_cartao_temp,utilizador_cvv_temp,utilizador_nome_cartao_temp);
+     RETURN (select 'criado com succeso');
+  ELSE 
+      RETURN (select 'ja existe');
+  END IF;
+END;
+$BODY$;
+
+
+--Depositar dinheiro no banco:
+
+CREATE OR REPLACE FUNCTION public.depositar(
+	utilizador_temp character varying,
+	num_card integer,
+	cvv_temp integer,
+	quantidade_dinheiro_temp integer)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+BEGIN
+  IF (select id_cart from  banco_cartao inner join banco_conta on id_conta = conta_id where num_cartao=num_card and cvv=cvv_temp and nome_cartao=utilizador_temp) IS not NULL then
+  UPDATE public.banco_conta
+    SET quantidade_dinheiro=(select quantidade_dinheiro from  banco_cartao inner join banco_conta on id_conta = conta_id where num_cartao=num_card and cvv=cvv_temp and nome_cartao=utilizador_temp)+ quantidade_dinheiro_temp::integer::numeric::money
+    where conta_id=(select conta_id from banco_cartao inner join banco_conta on id_conta = conta_id where num_cartao=num_card and cvv=cvv_temp and nome_cartao=utilizador_temp) and 
+    id_utilizador=(select id_utilizador from banco_cartao inner join banco_conta on id_conta = conta_id where num_cartao=num_card and cvv=cvv_temp and nome_cartao=utilizador_temp) and
+    num_conta=(select num_conta from banco_cartao inner join banco_conta on id_conta = conta_id where num_cartao=num_card and cvv=cvv_temp and nome_cartao=utilizador_temp);
+
+  RETURN (select 'depositado');
+  ELSE 
+  RETURN (select 'erro nos dados');
+  END IF;
+END;
+$BODY$;
+
+
+--Levantar dinheiro do banco:
+
+CREATE OR REPLACE FUNCTION public.levantar(
+	utilizador_temp character varying,
+	num_card integer,
+	cvv_temp integer,
+	quantidade_dinheiro_temp integer)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+BEGIN
+  IF (select id_cart from  banco_cartao inner join banco_conta on id_conta = conta_id where num_cartao=num_card and cvv=cvv_temp and nome_cartao=utilizador_temp and quantidade_dinheiro >= quantidade_dinheiro_temp::integer::numeric::money) IS not NULL then
+  UPDATE public.banco_conta
+    set quantidade_dinheiro=(select quantidade_dinheiro from banco_cartao inner join banco_conta on id_conta = conta_id where num_cartao=num_card and cvv=cvv_temp and nome_cartao=utilizador_temp)-quantidade_dinheiro_temp::integer::numeric::money
+    where conta_id=(select conta_id from banco_cartao inner join banco_conta on id_conta = conta_id where num_cartao=num_card and cvv=cvv_temp and nome_cartao=utilizador_temp) and 
+    id_utilizador=(select id_utilizador from banco_cartao inner join banco_conta on id_conta = conta_id where num_cartao=num_card and cvv=cvv_temp and nome_cartao=utilizador_temp) and
+    num_conta=(select num_conta from banco_cartao inner join banco_conta on id_conta = conta_id where num_cartao=num_card and cvv=cvv_temp and nome_cartao=utilizador_temp);
+
+  RETURN (select 'levantado');
+  ELSE 
+  RETURN (select 'nao tem ou nao existe');
+  END IF;
+END;
+$BODY$;
+
+
+
+--Verificar que o utilizador existe:
+
+CREATE OR REPLACE FUNCTION public.utilizador_existe(
+	utilizador_email_temp character varying,
+	pass character varying)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+BEGIN
+  IF (select utilizador_name from utilizador where utilizador_email = utilizador_email_temp and utilizador_pass = pass) IS not NULL then
+  RETURN (select utilizador_id from utilizador where utilizador_email = utilizador_email_temp and utilizador_pass = pass);
+  ELSE 
+  	IF (select utilizador_name from utilizador where utilizador_email = utilizador_email_temp) IS not NULL then
+  	RETURN (select 'existe mas a palavra pass esta errada ');
+  	ELSE 
+  	RETURN (select 'nao existe');
+  	END IF;
+  END IF;
+END;
+$BODY$;
+
+--Verificar as reservas do utilizador:
+
+CREATE OR REPLACE FUNCTION public.utilizador_reservas(
+	utilizador_temp character varying,
+	pass character varying)
+    RETURNS character varying
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+AS $BODY$
+BEGIN
+  IF (select id_utilizador from reserva inner join utilizador on id_utilizador = utilizador_id where utilizador_email = utilizador_temp and utilizador_pass =pass) IS not NULL then
+    RETURN (select res_gar.garagens_id from reserva inner join utilizador on id_utilizador = utilizador_id left join res_gar on reserva.reservas_id = res_gar.reservas_id where utilizador_email = utilizador_temp and utilizador_pass =pass);
+  ELSE 
+      RETURN (select 'nao tem reservas');
+  END IF;
+END;
+$BODY$;
+
+
+
